@@ -547,8 +547,17 @@ public final class RealJenkinsRule implements TestRule {
                         } catch (Exception x) {
                             x.printStackTrace();
                         }
+                        if (code == 500) { // Jenkins has completed startup but failed
+                            // do not make any further attempts and kill the process
+                            System.err.println("Jenkins failed to start");
+                            proc.destroyForcibly();
+                            proc = null;
+                            throw new JenkinsStartupException("Jenkins failed to start", err);
+                        }
                         throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
                     }
+                } catch (JenkinsStartupException x) {
+                    throw x;
                 } catch (Exception x) {
                     tries++;
                     if (tries == /* 3m */ 1800) {
@@ -821,6 +830,17 @@ public final class RealJenkinsRule implements TestRule {
         public Serializable run(JenkinsRule r) throws Throwable {
             s.run(r);
             return null;
+        }
+    }
+
+    public static class JenkinsStartupException extends IOException {
+
+        // TODO a getter
+        public final String error
+        
+        public JenkinsStartupException(String message, String error) {
+            super(message);
+            this.error = error
         }
     }
 }
